@@ -1,0 +1,164 @@
+<head>
+  <script type="text/javascript" src="d3.v2.js"></script>
+  <script type="text/javascript" src="jquery-1.7.2.min.js"></script>
+  <script type="text/javascript" src="underscore.js"></script>
+  <link href="nv.d3.css" rel="stylesheet">
+  <link href="bootstrap.min.css" rel="stylesheet">
+  
+  <script type="text/javascript" src="sankey.js"></script>
+  <script type="text/javascript" src="nv.d3.js"></script>
+  <script type="text/javascript" src="pileOdata.js"></script>
+  <script type="text/javascript" src="pileOdata_t.js"></script>
+  <script type="text/javascript" src="song_bar_graphs.js"></script>
+  <title>Rebecca Stuff!</title>
+  <style>
+
+#chart_1 svg {
+  height: 500px;
+}
+
+.node rect {
+  cursor: move;
+  fill-opacity: .9;
+  shape-rendering: crispEdges;
+}
+
+.node text {
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff;
+}
+
+.link {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .2;
+}
+.active_link {
+  stroke: red;
+  stroke-opacity: .4;
+}
+.link:hover {
+  stroke-opacity: .5;
+}
+
+</style>
+
+</head>
+<body>
+  <!--<div id="albersMapHolder"></div>-->
+<script language="javascript">
+  width = 300;
+  height = 500;
+  function albersMap(){
+    var svg = d3.select('#albersMapHolder').append('svg')
+        .attr('width', width)
+        .attr('height', height);
+    var projection = d3.geo.albersUsa();
+    var states = svg.append('g')
+        .attr('id', 'states');
+    states.attr('transform', 'scale(.3, .3)');
+
+    d3.json('us-states.json', function(collection) {
+        json = collection;
+        states.selectAll('path')
+            .data(collection.features)
+        .enter().append('path')
+            .attr('d', d3.geo.path().projection(projection))
+            .attr('id', function(d){return d.properties.name.replace(/\s+/g, '')})
+            .style('fill', 'gray')
+            .style('stroke', 'white')
+            .style('stroke-width', '1');
+    });
+  }
+  //albersMap();
+  console.warn("DONE LOADING I THINK?");
+</script>
+
+<div class="row">
+  <div class="col-md-3 start-list">
+  </div>
+  <div class="col-md-6 question-list">
+  </div>
+  <div class="col-md-3">
+    
+  </div>
+</div>
+  <div class="page-header">
+    <h1>3 Days Listening Data</h1>
+  </div>
+<div class="btn-group">
+  <button type="button" class="btn btn-default btn-success data-btn" data-day=-1>All Days</button>
+  <button type="button" class="btn btn-default data-btn" data-day=0>Day 1</button>
+  <button type="button" class="btn btn-default data-btn" data-day=1>Day 2</button>
+  <button type="button" class="btn btn-default data-btn" data-day=2>Day 3</button>
+</div>
+<div class="btn-group">
+  <button type="button" class="btn btn-default btn-success play-btn" data-track=2>All Tracks</button>
+  <button type="button" class="btn btn-default play-btn" data-track=3>30s+ Tracks</button>
+  <button type="button" class="btn btn-default play-btn" data-track=4>< 30s Tracks</button>
+</div>
+<div class="row">
+  <div class="graph_types"></div>
+</div>
+<div id="chart_1"></div>
+<div id="chart_2"></div>
+<div id="chart_3"></div>
+<table class="table table-striped">
+  <tr><td>Total Users</td><td class="tot-users"></td></tr>
+  <tr><td>0-2 Day Free</td><td class="0-2-users"></td></tr>
+  <tr><td>2-14 Day Free</td><td class="2-14-users"></td></tr>
+  <tr><td>15+ Day Free</td><td class="15-plus-users"></td></tr>
+  <tr><td>Subscribers</td><td class="sub-users"></td></tr>
+</table>
+<div id="user_summary"></div>
+<script language="javascript">
+  var total_user_count = data_groups.free_0.length + data_groups.free_1.length + data_groups.free_2.length + data_groups.sub.length
+  $('.tot-users').text(d3.format(",")(total_user_count))
+  $('.0-2-users').text(d3.format(",")(data_groups.free_0.length) +" ("+d3.format('%')(data_groups.free_0.length/total_user_count)+")")
+  $('.2-14-users').text(d3.format(",")(data_groups.free_1.length) +" ("+d3.format('%')(data_groups.free_1.length/total_user_count)+")")
+  $('.15-plus-users').text(d3.format(",")(data_groups.free_2.length) +" ("+d3.format('%')(data_groups.free_2.length/total_user_count)+")")
+  $('.sub-users').text(d3.format(",")(data_groups.sub.length) +" ("+d3.format('%')(data_groups.sub.length/total_user_count)+")")
+
+
+
+  var graph_types = [
+     { name: 'All Plays', func: all_plays },
+     { name: 'Web Only Plays', func: web_only_plays },
+     { name: 'Iphone Only Plays', func: iphone_only_plays },
+     { name: 'Android Only Plays', func: android_only_plays },
+     { name: 'Other Plays', func: other_only_plays }
+   ];
+  _.each(graph_types, function(g, i) {
+    $('.graph_types').append("<div class='btn btn-default bar-graph' data-graph="+i+">"+g.name+"</div> ")
+  });
+  $('[data-graph=0]').addClass('btn-primary');
+  $('.bar-graph').click(function(e){
+    var graph_data = unmodified_values(graph_types[$(e.target).data('graph')].func);
+    $('.bar-graph').removeClass('btn-primary');
+    $(e.target).addClass('btn-primary');
+    d3.select('#chart_1 svg').datum(graph_data);
+    window.chart.update();
+  });
+  $('.data-btn').click(function(e){
+    $('.data-btn').removeClass("btn-success");
+    $(e.target).addClass('btn-success');
+    var val = $(e.target).data('day')
+    if (val == -1)
+      date_list = [0,1,2]
+    else 
+      date_list = [val]
+    var graph_data = unmodified_values(graph_types[$('.bar-graph.btn-primary').data('graph')].func);
+    d3.select('#chart_1 svg').datum(graph_data);
+    window.chart.update();
+  })
+  $('.play-btn').click(function(e){
+    $('.play-btn').removeClass("btn-success");
+    $(e.target).addClass('btn-success');
+    var val = $(e.target).data('track')
+    debugger;
+    trackIndex = val
+    var graph_data = unmodified_values(graph_types[$('.bar-graph.btn-primary').data('graph')].func);
+    d3.select('#chart_1 svg').datum(graph_data);
+    window.chart.update();
+  })  
+</script>

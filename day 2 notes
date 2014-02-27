@@ -1,0 +1,99 @@
+srv/rdio/remote_backup/everyburger/srv-227-24/everyburger/log.2013-10-10.tgz
+
+
+on srv-110-32
+
+
+
+code/rdio/rdio/rpc/EveryBuger   :117   (SongSkippedTime = 10
+
+
+use default    (DON'T USE events here)
+create external table rebecca_users (uid INT, user_type STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '/tmp/rebecca_users';
+
+hadoop fs -copyFromLocal ~/user_keys.csv /tmp/rebecca_users
+
+
+describe rebecca_users;
+
+
+USER DATES is b
+
+
+
+insert overwrite directory '/tmp/rebecca_users_with_date' fow format delimited fields termincated by ',' select a.uid, a.user_type, b.date_joined from rebecca_users a join user_dates b on a.uid = b.uid;
+
+32 sec to run
+
+
+create external table rebecca_users_with_date (uid INT, user_type STRING, date_joined BIGINT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION '/tmp/rebecca_users_with_date';
+
+
+
+!!!!
+
+select * from rebeca_users_with_date limit 10;
+
+
+
+UNIX_TIMESTAMP  (patched by concatting " +00:00" to it pre-unix convert)
+
+now sqoop is being bitchy about stuff (the way to pull in mysql stuff to hadoop?  (( actually solved by - 7*3600 )))
+
+Good quote:   "Oops" right after typing "drop table"
+
+86400000 = 1 day in ms
+
+from (select a.uid, 
+  a.dev, 
+  ROUND( (a.rts - 1000 * b.date_joined) / 86400000) as days_since_joining
+  from events.rdio_play a
+  join rebecca_users_with_date b on a.uid = b.uid 
+  where a.dt >= '2013-10-01' and a.dt <= '2013-10-09'
+  ) subq
+insert overwrite directory '/tmp/rebecca_user_play_counts' 
+row format delimited 
+fields terminated by ','
+select uid, dev, days_since_joining, count(*) c 
+group by uid, dev, days_since_joining order by uid, dev, days_since_joing;
+
+
+rstecker@srv-110-32:~$ hadoop fs -copyToLocal /tmp/rebecca_user_play_counts .
+
+
+
+rebecca_user_tracked_play_counts
+
+
+
+# Device IDs, aka deviceid and deviceTypeID are sent with events to
+# indicate the type of device that created the event.
+class DeviceID(IntEnum):
+  Web = 0
+  BlackBerry = 1
+  iPhone = 2
+  Android = 3
+  Sonos = 4
+  WinPho = 5
+  Roku = 6
+  iPad = 7
+  Xbox = 8
+
+
+
+ f_plays = open('/Users/rebecca/Work/hackday/novemberHack/plays_october.csv', 'r')
+ f_tracked_plays = open('/Users/rebecca/Work/hackday/novemberHack/plays_october.csv', 'r')
+
+
+
+
+re: Amie not fitting on the couch
+"I think it's a good thing not all the women at Rdio can fit on one couch" -- Haley
+
+
+
+"Being on Yahoo says you don't really care that much about your online services" -- Unsourced 
+
+
+18:48:07 ~/Work/rdio/rdio>ls -ltah formal*
+-rw-r--r--  1 rebecca  staff    86M Nov 15 18:47 formal_user_data.csv

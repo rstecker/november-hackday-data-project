@@ -1,0 +1,208 @@
+<head>
+  <script type="text/javascript" src="d3.v2.js"></script>
+  <script type="text/javascript" src="jquery-1.7.2.min.js"></script>
+  <script type="text/javascript" src="underscore.js"></script>
+  <link href="nv.d3.css" rel="stylesheet">
+  <link href="bootstrap.min.css" rel="stylesheet">
+  
+  <script type="text/javascript" src="sankey.js"></script>
+  <script type="text/javascript" src="nv.d3.js"></script>
+  <script type="text/javascript" src="pileOdata.js"></script>
+  <script type="text/javascript" src="pileOdata_t.js"></script>
+  <script type="text/javascript" src="nvd3_graph.js"></script>
+  <script type="text/javascript" src="flow_graph.js"></script>
+  <title>Rebecca Stuff!</title>
+  <style>
+
+#chart_1 svg {
+  height: 500px;
+}
+
+.node rect {
+  cursor: move;
+  fill-opacity: .9;
+  shape-rendering: crispEdges;
+}
+
+.node text {
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff;
+}
+
+.link {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .2;
+}
+.active_link {
+  stroke: red;
+  stroke-opacity: .4;
+}
+.link:hover {
+  stroke-opacity: .5;
+}
+
+</style>
+
+</head>
+<body>
+  <!--<div id="albersMapHolder"></div>-->
+<script language="javascript">
+  width = 300;
+  height = 500;
+  function albersMap(){
+    var svg = d3.select('#albersMapHolder').append('svg')
+        .attr('width', width)
+        .attr('height', height);
+    var projection = d3.geo.albersUsa();
+    var states = svg.append('g')
+        .attr('id', 'states');
+    states.attr('transform', 'scale(.3, .3)');
+
+    d3.json('us-states.json', function(collection) {
+        json = collection;
+        states.selectAll('path')
+            .data(collection.features)
+        .enter().append('path')
+            .attr('d', d3.geo.path().projection(projection))
+            .attr('id', function(d){return d.properties.name.replace(/\s+/g, '')})
+            .style('fill', 'gray')
+            .style('stroke', 'white')
+            .style('stroke-width', '1');
+    });
+  }
+  //albersMap();
+  console.warn("DONE LOADING I THINK?");
+</script>
+
+<div class="row">
+  <div class="col-md-3 start-list">
+  </div>
+  <div class="col-md-6 question-list">
+  </div>
+  <div class="col-md-3">
+    
+  </div>
+</div>
+  <div class="page-header">
+    <h1>Basic User Data Graphs</h1>
+  </div>
+<div class="btn-group">
+  <button type="button" class="btn btn-default btn-success data-btn only-pre-data">only pre-subscribe data</button>
+  <button type="button" class="btn btn-default data-btn all-data">all data</button>
+</div>
+<div class="row">
+  <div class="graph_types"></div>
+</div>
+<div id="chart_1"></div>
+<div id="chart_2"></div>
+<div id="chart_3"></div>
+<table class="table table-striped">
+  <tr><td>Total Users</td><td class="tot-users"></td></tr>
+  <tr><td>0-2 Day Free</td><td class="0-2-users"></td></tr>
+  <tr><td>2-14 Day Free</td><td class="2-14-users"></td></tr>
+  <tr><td>15+ Day Free</td><td class="15-plus-users"></td></tr>
+  <tr><td>Subscribers</td><td class="sub-users"></td></tr>
+</table>
+<div id="user_summary"></div>
+<script language="javascript">
+  var total_user_count = data_groups.free_0.length + data_groups.free_1.length + data_groups.free_2.length + data_groups.sub.length
+  $('.tot-users').text(d3.format(",")(total_user_count))
+  $('.0-2-users').text(d3.format(",")(data_groups.free_0.length) +" ("+d3.format('%')(data_groups.free_0.length/total_user_count)+")")
+  $('.2-14-users').text(d3.format(",")(data_groups.free_1.length) +" ("+d3.format('%')(data_groups.free_1.length/total_user_count)+")")
+  $('.15-plus-users').text(d3.format(",")(data_groups.free_2.length) +" ("+d3.format('%')(data_groups.free_2.length/total_user_count)+")")
+  $('.sub-users').text(d3.format(",")(data_groups.sub.length) +" ("+d3.format('%')(data_groups.sub.length/total_user_count)+")")
+
+
+
+  var graph_types = [
+     { name: 'Emails', func: email_domains },
+     { name: 'Reviews', func: reviews_count },
+     { name: 'City', func: city },
+     { name: 'Days To Subscription', func: days_to_sub },
+     { name: 'Followed', func: follower },
+     { name: 'Was Followed By', func: followee },
+     { name: 'Shares', func: shares },
+     { name: 'Shared To', func: shared_to },
+     { name: 'State', func: state },
+     { name: 'Age', func: age },
+     { name: 'Days Active', func: days_active },
+     { name: 'Device Count', func: device_counts },
+     { name: 'Playlist Count', func: playlist_count },
+     { name: 'Playlist Avg. Track Count', func: playlist_avg },
+     { name: 'Playlist Mean Track Count', func: playlist_mean }
+   ];
+  _.each(graph_types, function(g, i) {
+    $('.graph_types').append("<div class='btn btn-default bar-graph' data-graph="+i+">"+g.name+"</div> ")
+  });
+  $('[data-graph=0]').addClass('btn-primary');
+  $('.bar-graph').click(function(e){
+    var graph_data = unmodified_values(graph_types[$(e.target).data('graph')].func);
+    $('.bar-graph').removeClass('btn-primary');
+    $(e.target).addClass('btn-primary');
+    d3.select('#chart_1 svg').datum(graph_data);
+    window.chart.update();
+  });
+  $('.data-btn').click(function(e){
+    $('.data-btn').toggleClass("btn-success");
+    only_pre_data = !only_pre_data;
+    var graph_data = unmodified_values(graph_types[$('.bar-graph.btn-primary').data('graph')].func);
+    d3.select('#chart_1 svg').datum(graph_data);
+    window.chart.update();
+  })
+</script>
+<div class="page-header">
+  <h1>Brief Explination of Data</h1>
+</div>
+I collected information about people who signed up on the site during the first 10 days of October.  I then collected all the information I could between then and hack day.  Users from the first 7 days of October have 3 day listening history.  All of my data collection was done with hacky scripts, was not verified or tested, and should be taken with a handful of salt.  Other graphs available: <a href="/us_page_2.html">Sankey-ish Flow</a> and <a href="/songBarGraphs.html">play data bar graphs</a>
+<div>
+  <div class="page-header">
+    <h1>Example user JSON extracted</h1>
+  </div>
+  <pre class='.pre-scrollable'>
+  "14964825":{
+    "shared_to_pre_sub":0,
+    "follower_post_sub":0,
+    "email_domain":"gmail.com",
+    "shared_post_sub":0,
+    "id":"14964825",
+    "follower_day_0":0,
+    "days_to_sub":-6,
+    "plays":[
+      [0,2,145,88], # day, device, play starts, 30s+ plays
+      [1,2,75,51],
+      [2,2,50,29]
+    ],
+    "device_count":1,
+    "join_time":"06:58:43",
+    "days_active":14,
+    "follower_1_to_sub":0,
+    "followee_pre_sub":0,
+    "playlists_pre_sub":[4,6,10], # length of each playlist in num of tracks
+    "followee_post_sub":0,
+    "playlists_post_sub":[5,2],
+    "sub_time":-99,
+    "loc_0":"san diego",
+    "loc_1":"ca",
+    "shared_to_post_sub":0,
+    "shared_pre_sub":0,
+    "sub_date":-99,
+    "age":33,
+    "reviews":0,
+    "join_date":"2013-10-07",
+    "gender":"m"
+  }
+  </pre>
+</div>
+<div>
+  <div class="page-header">
+    <h1>Thanks To</h1>
+  </div>
+  
+  <ul>
+    <li>John Bender</li>
+    <li>Vanessa & Emily</li>
+    <li>David & Mike</li>
+    <li>Yijen</li>
+  </ul>
+</div>

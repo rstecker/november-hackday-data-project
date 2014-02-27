@@ -1,0 +1,141 @@
+<head>
+  <script type="text/javascript" src="d3.v2.js"></script>
+  <script type="text/javascript" src="jquery-1.7.2.min.js"></script>
+  <script type="text/javascript" src="underscore.js"></script>
+  <link href="nv.d3.css" rel="stylesheet">
+  <link href="bootstrap.min.css" rel="stylesheet">
+  
+  <script type="text/javascript" src="sankey.js"></script>
+  <script type="text/javascript" src="nv.d3.js"></script>
+  <script type="text/javascript" src="pileOdata.js"></script>
+  <script type="text/javascript" src="pileOdata_t.js"></script>
+  <script type="text/javascript" src="nvd3_graph.js"></script>
+  <script type="text/javascript" src="flow_graph.js"></script>
+  <title>Rebecca Stuff!</title>
+  <style>
+
+#chart {
+  height: 500px;
+}
+
+.node rect {
+  cursor: move;
+  fill-opacity: .9;
+  shape-rendering: crispEdges;
+}
+
+#chart_1, #chart_2, #chart_3 {
+  display:none;
+}
+
+.node text {
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff;
+}
+
+.link {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .2;
+}
+.active_link {
+  stroke: red;
+  stroke-opacity: .4;
+}
+.link:hover {
+  stroke-opacity: .5;
+}
+
+</style>
+
+</head>
+<body>
+  <div id="albersMapHolder"></div>
+<script language="javascript">
+  width = 300;
+  height = 500;
+  function albersMap(){
+    var svg = d3.select('#albersMapHolder').append('svg')
+        .attr('width', width)
+        .attr('height', height);
+    var projection = d3.geo.albersUsa();
+    var states = svg.append('g')
+        .attr('id', 'states');
+    states.attr('transform', 'scale(.3, .3)');
+
+    d3.json('us-states.json', function(collection) {
+        json = collection;
+        states.selectAll('path')
+            .data(collection.features)
+        .enter().append('path')
+            .attr('d', d3.geo.path().projection(projection))
+            .attr('id', function(d){return d.properties.name.replace(/\s+/g, '')})
+            .style('fill', 'gray')
+            .style('stroke', 'white')
+            .style('stroke-width', '1');
+    });
+  }
+  //albersMap();
+  console.warn("DONE LOADING I THINK?");
+</script>
+
+<div class="row">
+  <div class="col-md-3 start-list">
+  </div>
+  <div class="col-md-6 question-list">
+  </div>
+  <div class="col-md-3">
+    
+  </div>
+</div>
+
+<div id="flow_1"></div>
+
+<div id="user_summary"></div>
+<script language="javascript">
+  _.each(all_questions, function(q, i){
+    asked = 'default';
+    if (_.contains(questions_asked, q)) {
+      asked = 'success';
+    }
+    $('.question-list').append('<button data-qid='+i+' type="button" class="btn btn-'+asked+' question-button">'+q.question+'</button> ')
+  });
+  $('.question-button').click(function(e){
+    var qid = $(e.target).data('qid');
+    var q = all_questions[qid];
+    var index = questions_asked.indexOf(q)
+    if (index > -1) {
+      questions_asked.splice(index,1);
+    } else {
+      questions_asked.push(q);
+    }
+    $(e.target).toggleClass('btn-default');
+    $(e.target).toggleClass('btn-success');
+    var x = getEnergyFromPileOfData()
+    drawGraph(x);
+  })
+  _.each(all_starts, function(s, i){
+    asked = 'default';
+    if (selected_start == s) {
+      asked = 'primary';
+    }
+    $('.start-list').append('<button data-sid='+i+' type="button" class="btn btn-'+asked+' start-button">'+s.question+'</button> ')
+  });
+  $('.start-button').click(function(e){
+    var sid = $(e.target).data('sid');
+    var s = all_starts[sid];
+    if (s == selected_start) {
+      return;
+    } 
+    $('[data-sid='+selected_start_index+']').toggleClass('btn-default');
+    $('[data-sid='+selected_start_index+']').toggleClass('btn-primary');
+    $(e.target).toggleClass('btn-default');
+    $(e.target).toggleClass('btn-primary');
+    selected_start = s;
+    selected_start_index = sid;
+    var x = getEnergyFromPileOfData()
+    drawGraph(x);
+  })  
+  sankeyInit();
+  drawGraph(getEnergyFromPileOfData());
+</script>

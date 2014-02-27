@@ -1,0 +1,12 @@
+READ ME
+
+To run the server:
+
+  0) have python installed
+  1) shut down anything that may be running on port 8080
+  2) open a terminal
+  3) cd to the directory containing this file
+  4) run `python -m SimpleHTTPServer 8080` & leave terminal window open
+  5) open web page to http://localhost:8080/barGraphs.html
+
+Included in this directory is the totally jumbled pythonNotes.py which really is just fragments of things I ran on the shell.  day 2 notes is a file that contains misc notes and information about extracting play data from hadoop. 
